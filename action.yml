@@ -11,7 +11,6 @@ inputs:
   working-directory:
     description: "Directory where the action is going to be performed"
     required: false
-    default: '/tmp'
   install-directory:
     description: "Directory where the executable is going to be copied"
     required: true
@@ -37,16 +36,11 @@ runs:
         OS=$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')
         ARCH=$(echo ${{ runner.arch }} | tr '[:upper:]' '[:lower:]')
         case $OS in
-          macos)
-            OS="darwin"
-            ;;
+          macos) OS="darwin" ;;
         esac
         case $ARCH in
-          x86)
-            ARCH="386"
-            ;;
-          x64)
-            ARCH="amd64"
+          x86) ARCH="386" ;;
+          x64) ARCH="amd64" ;;
         esac
         echo "os=$OS"
         echo "arch=$ARCH"
@@ -56,10 +50,19 @@ runs:
     - id: dist-info
       run: |
         DIST=$(curl -s https://dist.ipfs.io/${{ inputs.name }}/${{ steps.version-info.outputs.version }}/dist.json)
-        LINK=$(jq '.platforms.${{ steps.system-info.outputs.os }}.archs.${{ steps.system-info.outputs.arch }}.link' <<< $DIST)
-        SHA512=$(jq '.platforms.${{ steps.system-info.outputs.os }}.archs.${{ steps.system-info.outputs.arch }}.sha512' <<< $DIST)
+        LINK=$(jq -r '.platforms.${{ steps.system-info.outputs.os }}.archs.${{ steps.system-info.outputs.arch }}.link' <<< $DIST)
+        SHA512=$(jq -r '.platforms.${{ steps.system-info.outputs.os }}.archs.${{ steps.system-info.outputs.arch }}.sha512' <<< $DIST)
         echo "link=$LINK"
         echo "sha512=$SHA512"
-        echo "::set-output name=link::$LINK)"
-        echo "::set-output name=sha512::$SHA512)"
+        echo "::set-output name=link::$LINK"
+        echo "::set-output name=sha512::$SHA512"
       shell: bash
+    - run: |
+        curl -so .${{ steps.dist-info.outputs.link }} https://dist.ipfs.io/${{ inputs.name }}/${{ steps.version-info.outputs.version }}${{ steps.dist-info.outputs.link }}
+        case "${{ steps.dist-info.outputs.link }}" in
+          *.tar.gz) tar -zxf .${{ steps.dist-info.outputs.link }} ;;
+          *.zip) unzip .${{ steps.dist-info.outputs.link }} ;;
+        esac
+        find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}

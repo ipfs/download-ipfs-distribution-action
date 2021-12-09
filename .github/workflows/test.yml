@@ -8,6 +8,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         name: [go-ipfs]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2
         with:
