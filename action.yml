@@ -29,12 +29,15 @@ runs:
         if [ -z "$VERSION" ]; then
           VERSION=$(curl -s https://dist.ipfs.io/${{ inputs.name }}/versions | grep -v rc | tail -n 1)
         fi
+        echo "version=$VERSION"
         echo "::set-output name=version::$VERSION"
       shell: bash
     - id: system-info
       run: |
-        OS=$(uname)
-        ARCH=$(uname -m)
-        echo "::set-output name=os::${OS,,}"
-        echo "::set-output name=arch::${ARCH,,}"
+        OS=$(uname | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m | tr '[:upper:]' '[:lower:]')
+        echo "os=$OS"
+        echo "::set-output name=os::$OS)"
+        echo "arch=$ARCH"
+        echo "::set-output name=arch::$ARCH)"
       shell: bash
