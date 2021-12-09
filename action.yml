@@ -94,5 +94,5 @@ runs:
       working-directory: ${{ inputs.working-directory }}
     - run: |
         rm ".${{ steps.dist-info.outputs.link }}"
-        rm -r ${{ inputs.name }}
+        rm -r "${{ inputs.name }}"
       shell: bash

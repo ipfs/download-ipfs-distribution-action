@@ -17,5 +17,7 @@ jobs:
         uses: ./download-ipfs-distribution-action
         with:
           name: ${{ matrix.name }}
-      - run: ${{ steps.distribution.outputs.executable }} --help
+      # ipget for linux-amd64 requires GLIBC_2.32 but GLIBC_2.31 is installed
+      - if: ${{ matrix.os != 'ubuntu-latest' || matrix.name != 'ipget' }}
+        run: ${{ steps.distribution.outputs.executable }} --help
         shell: bash
