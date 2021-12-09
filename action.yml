@@ -1,0 +1,40 @@
+name: 'Download IPFS Distribution'
+description: 'Download executable from dist.ipfs.io'
+inputs:
+  name:
+    description: 'Name of the distribution to download'
+    required: true
+    default: 'go-ipfs'
+  version:
+    description: 'Version of the distribution to download(defaults to latest stable version)'
+    required: false
+  working-directory:
+    description: "Directory where the action is going to be performed"
+    required: false
+    default: '/tmp'
+  install-directory:
+    description: "Directory where the executable is going to be copied"
+    required: true
+    default: '/usr/local/bin'
+outputs:
+  executable:
+    description: "The name of the executable"
+    value: ${{ steps.system-info.outputs.os }}
+runs:
+  using: "composite"
+  steps:
+    - id: version-info
+      run: |
+        VERSION=${{ inputs.version }}
+        if [ -z "$VERSION" ]; then
+          VERSION=$(curl -s https://dist.ipfs.io/${{ inputs.name }}/versions | grep -v rc | tail -n 1)
+        fi
+        echo "::set-output name=version::$VERSION"
+      shell: bash
+    - id: system-info
+      run: |
+        OS=$(uname)
+        ARCH=$(uname -m)
+        echo "::set-output name=os::${OS,,}"
+        echo "::set-output name=arch::${ARCH,,}"
+      shell: bash

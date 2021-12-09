@@ -1,0 +1,15 @@
+name: Test
+on: [push]
+jobs:
+  Use-Action:
+    name: Use Action
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        name: [go-ipfs]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./
+        with:
+          name: ${{ matrix.name }}
