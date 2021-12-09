@@ -63,6 +63,21 @@ runs:
           *.tar.gz) tar -zxf .${{ steps.dist-info.outputs.link }} ;;
           *.zip) unzip .${{ steps.dist-info.outputs.link }} ;;
         esac
-        find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+    - run: |
+        echo $PATH
+        EXECUTABLES=()        
+        for executable in $(find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"); do
+          cp $executable ${{ inputs.install-directory }}
+          EXECUTABLES+=($(basename $executable))
+        done
+        EXECUTABLE=${EXECUTABLES[0]}
+        EXECUTABLES=$(jq -nc '$ARGS.positional' --args ${EXECUTABLES[@]})
+        echo "executable=$EXECUTABLE"
+        echo "executables=$EXECUTABLES"
+        echo "::set-output name=executable::$EXECUTABLE"
+        echo "::set-output name=executables::$EXECUTABLES"
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+
