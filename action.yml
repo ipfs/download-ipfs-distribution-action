@@ -9,36 +9,26 @@ inputs:
     description: 'Version of the distribution to download(defaults to latest stable version)'
     required: false
   working-directory:
-    description: "Directory where the action is going to be performed"
+    description: "Directory where the action is going to be performed(defaults to current directory)"
     required: false
   install-directory:
-    description: "Directory where the executable is going to be copied"
-    required: true
-    default: '/usr/local/bin'
+    description: "Directory where the executable is going to be copied(defaults to /usr/local/bin or /usr/bin on windows)"
+    required: false
 outputs:
   executable:
     description: "The name of the executable"
-    value: ${{ steps.system-info.outputs.os }}
+    value: ${{ steps.system.outputs.os }}
 runs:
   using: "composite"
   steps:
-    - id: version-info
+    - id: system
       run: |
-        VERSION=${{ inputs.version }}
-        if [ -z "$VERSION" ]; then
-          VERSION=$(curl -s https://dist.ipfs.io/${{ inputs.name }}/versions | grep -v rc | tail -n 1)
-        fi
-        echo "version=$VERSION"
-        echo "::set-output name=version::$VERSION"
-      shell: bash
-    - id: system-info
-      run: |
-        OS=$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')
-        ARCH=$(echo ${{ runner.arch }} | tr '[:upper:]' '[:lower:]')
-        case $OS in
+        OS="$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
+        ARCH="$(echo ${{ runner.arch }} | tr '[:upper:]' '[:lower:]')"
+        case "$OS" in
           macos) OS="darwin" ;;
         esac
-        case $ARCH in
+        case "$ARCH" in
           x86) ARCH="386" ;;
           x64) ARCH="amd64" ;;
         esac
@@ -47,37 +37,54 @@ runs:
         echo "::set-output name=os::$OS"
         echo "::set-output name=arch::$ARCH"
       shell: bash
+    - id: inputs
+      run: |
+        VERSION="${{ inputs.version }}"
+        INSTALL_DIRECTORY="${{ inputs.install-directory }}"
+        if [ -z "$VERSION" ]; then
+          VERSION="$(curl -s https://dist.ipfs.io/${{ inputs.name }}/versions | grep -v rc | tail -n 1)"
+        fi
+        if [ -z "$INSTALL_DIRECTORY" ]; then
+          if [ "${{ steps.system.outputs.os }}" == "windows" ]; then
+            INSTALL_DIRECTORY="/usr/bin"
+          else
+            INSTALL_DIRECTORY="/usr/local/bin"
+          fi
+        fi
+        echo "version=$VERSION"
+        echo "install-directory=$INSTALL_DIRECTORY"
+        echo "::set-output name=version::$VERSION"
+        echo "::set-output name=install-directory::$INSTALL_DIRECTORY"
+      shell: bash
     - id: dist-info
       run: |
-        DIST=$(curl -s https://dist.ipfs.io/${{ inputs.name }}/${{ steps.version-info.outputs.version }}/dist.json)
-        LINK=$(jq -r '.platforms.${{ steps.system-info.outputs.os }}.archs.${{ steps.system-info.outputs.arch }}.link' <<< $DIST)
-        SHA512=$(jq -r '.platforms.${{ steps.system-info.outputs.os }}.archs.${{ steps.system-info.outputs.arch }}.sha512' <<< $DIST)
+        DIST="$(curl -s https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json)"
+        LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link' <<< $DIST)"
+        SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512' <<< $DIST)"
         echo "link=$LINK"
         echo "sha512=$SHA512"
         echo "::set-output name=link::$LINK"
         echo "::set-output name=sha512::$SHA512"
       shell: bash
     - run: |
-        curl -so .${{ steps.dist-info.outputs.link }} https://dist.ipfs.io/${{ inputs.name }}/${{ steps.version-info.outputs.version }}${{ steps.dist-info.outputs.link }}
+        curl -so ".${{ steps.dist-info.outputs.link }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist-info.outputs.link }}"
         case "${{ steps.dist-info.outputs.link }}" in
-          *.tar.gz) tar -zxf .${{ steps.dist-info.outputs.link }} ;;
-          *.zip) unzip .${{ steps.dist-info.outputs.link }} ;;
+          *.tar.gz) tar -zxf ".${{ steps.dist-info.outputs.link }}" ;;
+          *.zip) unzip ".${{ steps.dist-info.outputs.link }}" ;;
         esac
       shell: bash
       working-directory: ${{ inputs.working-directory }}
     - run: |
-        echo $PATH
-        EXECUTABLES=()        
+        EXECUTABLES=()
         for executable in $(find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"); do
-          cp $executable ${{ inputs.install-directory }}
-          EXECUTABLES+=($(basename $executable))
+          cp "$executable" "${{ steps.inputs.outputs.install-directory }}/$EXECUTABLE"
+          EXECUTABLES+=("$(basename $executable)")
         done
-        EXECUTABLE=${EXECUTABLES[0]}
-        EXECUTABLES=$(jq -nc '$ARGS.positional' --args ${EXECUTABLES[@]})
+        EXECUTABLE="${EXECUTABLES[0]}"
+        EXECUTABLES="$(jq -nc '$ARGS.positional' --args ${EXECUTABLES[@]})"
         echo "executable=$EXECUTABLE"
         echo "executables=$EXECUTABLES"
         echo "::set-output name=executable::$EXECUTABLE"
         echo "::set-output name=executables::$EXECUTABLES"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-
