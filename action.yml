@@ -17,7 +17,10 @@ inputs:
 outputs:
   executable:
     description: "The name of the executable"
-    value: ${{ steps.system.outputs.os }}
+    value: ${{ steps.copy.outputs.executable }}
+  executables:
+    description: "The names of all the executables"
+    value: ${{ steps.copy.outputs.executables }}
 runs:
   using: "composite"
   steps:
@@ -74,7 +77,8 @@ runs:
         esac
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-    - run: |
+    - id: copy
+      run: |
         EXECUTABLES=()
         for executable in $(find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"); do
           cp "$executable" "${{ steps.inputs.outputs.install-directory }}/$EXECUTABLE"
@@ -88,3 +92,7 @@ runs:
         echo "::set-output name=executables::$EXECUTABLES"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+    - run: |
+        rm ".${{ steps.dist-info.outputs.link }}"
+        rm -r ${{ inputs.name }}
+      shell: bash
