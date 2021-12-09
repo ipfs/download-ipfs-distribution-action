@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        name: [go-ipfs]
+        name: [fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
