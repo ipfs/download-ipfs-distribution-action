@@ -21,7 +21,7 @@ The action downloads a distribution from [dist.ipfs.io](https://dist.ipfs.io) an
 ## Example
 
 ```
-- uses: galargh/download-ipfs-distribution-action
+- uses: protocol/download-ipfs-distribution-action@master
   with:
     name: go-ipfs
 - run: ipfs --help
