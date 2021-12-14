@@ -1,5 +1,6 @@
 name: Release
 on:
+  workflow_dispatch:
   push:
     paths: [CHANGELOG.md]
     branches: [master]
@@ -14,8 +15,8 @@ jobs:
           git fetch origin --tags
           if [[ -z "$(git tag -l "v$version")" ]]; then
             git tag "v$major.$minor.$patch"
-            git tag "v$major.$minor"
-            git tag "v$major"
+            git tag "v$major.$minor" --force
+            git tag "v$major" --force
             git push --tags --force
             echo "BODY<<EOF" >> $GITHUB_ENV
             echo "$(IFS=$'\n'; echo "${log[*]}")" >> $GITHUB_ENV
