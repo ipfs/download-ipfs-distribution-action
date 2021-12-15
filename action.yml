@@ -59,21 +59,35 @@ runs:
         echo "::set-output name=version::$VERSION"
         echo "::set-output name=install-directory::$INSTALL_DIRECTORY"
       shell: bash
-    - id: dist-info
+    - id: dist
       run: |
         DIST="$(curl -s https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json)"
-        LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link' <<< $DIST)"
-        SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512' <<< $DIST)"
+        LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' <<< $DIST)"
+        ARCHIVE="$(basename "$LINK")"
+        SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' <<< $DIST)"
         echo "link=$LINK"
+        echo "archive=$ARCHIVE"
         echo "sha512=$SHA512"
         echo "::set-output name=link::$LINK"
+        echo "::set-output name=archive::$ARCHIVE"
         echo "::set-output name=sha512::$SHA512"
       shell: bash
+    - run: curl -so "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - if: ${{ steps.dist.outputs.sha512 != '' }}
+      run: |
+        CMD="sha512sum"
+        if [ "${{ runner.os }}" == "macOS" ]; then
+          CMD="shasum --algorithm 512"
+        fi
+        echo "${{ steps.dist.outputs.sha512 }}  ${{ steps.dist.outputs.archive }}" | $CMD --check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
     - run: |
-        curl -so ".${{ steps.dist-info.outputs.link }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist-info.outputs.link }}"
-        case "${{ steps.dist-info.outputs.link }}" in
-          *.tar.gz) tar -zxf ".${{ steps.dist-info.outputs.link }}" ;;
-          *.zip) unzip ".${{ steps.dist-info.outputs.link }}" ;;
+        case "${{ steps.dist.outputs.archive }}" in
+          *.tar.gz) tar -zxf "${{ steps.dist.outputs.archive }}" ;;
+          *.zip) unzip "${{ steps.dist.outputs.archive }}" ;;
         esac
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -93,6 +107,6 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
     - run: |
-        rm ".${{ steps.dist-info.outputs.link }}"
+        rm "${{ steps.dist.outputs.archive }}"
         rm -r "${{ inputs.name }}"
       shell: bash
