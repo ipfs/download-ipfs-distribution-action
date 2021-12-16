@@ -24,6 +24,9 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - run: mkdir "${{ inputs.name }}"
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
     - id: system
       run: |
         OS="$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
@@ -40,12 +43,14 @@ runs:
         echo "::set-output name=os::$OS"
         echo "::set-output name=arch::$ARCH"
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
     - id: inputs
       run: |
         VERSION="${{ inputs.version }}"
         INSTALL_DIRECTORY="${{ inputs.install-directory }}"
         if [ -z "$VERSION" ]; then
-          VERSION="$(curl -s https://dist.ipfs.io/${{ inputs.name }}/versions | grep -v rc | tail -n 1)"
+          curl --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.io/${{ inputs.name }}/versions"
+          VERSION="$(grep -v rc "${{ inputs.name }}/versions" | tail -n 1)"
         fi
         if [ -z "$INSTALL_DIRECTORY" ]; then
           if [ "${{ steps.system.outputs.os }}" == "windows" ]; then
@@ -59,12 +64,13 @@ runs:
         echo "::set-output name=version::$VERSION"
         echo "::set-output name=install-directory::$INSTALL_DIRECTORY"
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
     - id: dist
       run: |
-        DIST="$(curl -s https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json)"
-        LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' <<< $DIST)"
+        curl --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json"
+        LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' "${{ inputs.name }}/dist.json")"
         ARCHIVE="$(basename "$LINK")"
-        SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' <<< $DIST)"
+        SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' "${{ inputs.name }}/dist.json")"
         echo "link=$LINK"
         echo "archive=$ARCHIVE"
         echo "sha512=$SHA512"
@@ -72,7 +78,8 @@ runs:
         echo "::set-output name=archive::$ARCHIVE"
         echo "::set-output name=sha512::$SHA512"
       shell: bash
-    - run: curl -so "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
+      working-directory: ${{ inputs.working-directory }}
+    - run: curl --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
     - if: ${{ steps.dist.outputs.sha512 != '' }}
@@ -106,7 +113,9 @@ runs:
         echo "::set-output name=executables::$EXECUTABLES"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-    - run: |
-        rm "${{ steps.dist.outputs.archive }}"
+    - if: ${{ always() }}
+      run: |
         rm -r "${{ inputs.name }}"
+        rm "${{ steps.dist.outputs.archive }}"
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
