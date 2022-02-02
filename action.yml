@@ -79,7 +79,17 @@ runs:
         echo "::set-output name=sha512::$SHA512"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-    - run: curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
+    - id: archive-cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/${{ steps.dist.outputs.archive }}
+        key: dist-${{ steps.dist.outputs.archive }}
+    - if: steps.archive-cache.outputs.cache-hit == 'true'
+      run: cp ~/.cache/${{ steps.dist.outputs.archive }} .
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - if: steps.archive-cache.outputs.cache-hit != 'true'
+      run: curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
     - if: ${{ steps.dist.outputs.sha512 != '' }}
@@ -116,6 +126,7 @@ runs:
     - if: ${{ always() }}
       run: |
         rm -r "${{ inputs.name }}"
-        rm "${{ steps.dist.outputs.archive }}"
+        mkdir -p ~/.cache/
+        mv "${{ steps.dist.outputs.archive }}" ~/.cache/
       shell: bash
       working-directory: ${{ inputs.working-directory }}
