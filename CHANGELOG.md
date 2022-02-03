@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- archive caching controlled by boolean input `cache`
+
+### Changed
+- `working-directory` default from current dir to temp dir
 
 ## [1.0.2] - 2021-12-16
 ### Added

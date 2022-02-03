@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        name: [fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
+        name: [go-ipfs, fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
@@ -17,6 +17,7 @@ jobs:
         uses: ./download-ipfs-distribution-action
         with:
           name: ${{ matrix.name }}
+          cache: false
       # ipget for linux-amd64 requires GLIBC_2.32 but GLIBC_2.31 is installed
       - if: ${{ matrix.os != 'ubuntu-latest' || matrix.name != 'ipget' }}
         run: ${{ steps.distribution.outputs.executable }} --help
