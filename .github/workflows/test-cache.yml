@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           path: download-ipfs-distribution-action
+      - run: sed -i'' -e 's/curl .* ||/false ||/' download-ipfs-distribution-action/action.yml
+        shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action
       - if: ${{ steps.distribution.outputs.cache-hit != 'true' }}
