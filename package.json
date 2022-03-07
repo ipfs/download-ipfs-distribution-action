@@ -1,0 +1,30 @@
+{
+  "name": "download-ipfs-distribution-action",
+  "version": "1.0.0",
+  "description": "The action downloads a distribution from [dist.ipfs.io](https://dist.ipfs.io) and puts it on `PATH`.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/protocol/download-ipfs-distribution-action.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/protocol/download-ipfs-distribution-action/issues"
+  },
+  "homepage": "https://github.com/protocol/download-ipfs-distribution-action#readme",
+  "dependencies": {
+    "@actions/cache": "^1.0.9",
+    "@actions/core": "^1.6.0",
+    "@actions/github": "^5.0.0",
+    "axios": "^0.26.0",
+    "extract-zip": "^2.0.1",
+    "file-type": "^17.1.1",
+    "path": "^0.12.7",
+    "tar": "^6.1.11"
+  }
+}
