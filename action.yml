@@ -113,7 +113,7 @@ runs:
     - run: |
         case "${{ steps.dist.outputs.archive }}" in
           *.tar.gz) tar -zxf "${{ steps.dist.outputs.archive }}" ;;
-          *.zip) unzip "${{ steps.dist.outputs.archive }}" ;;
+          *.zip) 7z e "${{ steps.dist.outputs.archive }}" -o${{ inputs.name }} ;;
         esac
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
