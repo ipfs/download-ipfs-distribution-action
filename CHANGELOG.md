@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.1.1] - 2022-03-07
+### Changed
+- the tool used for extracting ZIP files from `unzip` to `7z`
+
 ## [1.1.0] - 2022-02-03
 ### Added
 - archive caching controlled by boolean input `cache`
