@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           path: download-ipfs-distribution-action
-      - run: sed -i'' -e 's/curl .* ||/false ||/' download-ipfs-distribution-action/action.yml
+      - run: echo '127.0.0.1 dist.ipfs.io' | sudo tee -a /etc/hosts
         shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action
