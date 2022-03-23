@@ -15,8 +15,8 @@ inputs:
     description: "Directory where the executable is going to be copied(defaults to /usr/local/bin or /usr/bin on windows)"
     required: false
   cache:
-    description: "A boolean value to indicate the archive cache should be used"
-    required: true
+    description: "A boolean value to indicate the fallback cache should be used"
+    required: false
     default: 'true'
 outputs:
   executable:
@@ -26,8 +26,8 @@ outputs:
     description: "The names of all the executables"
     value: ${{ steps.copy.outputs.executables }}
   cache-hit:
-    description: "A boolean value to indicate the archive was downloaded from cache"
-    value: ${{ steps.archive-cache.outputs.cache-hit }}
+    description: "A boolean value to indicate the fallback cache was used"
+    value: ${{ steps.inputs.outputs.cache-hit == 'true' || steps.dist.outputs.cache-hit == 'true' || steps.archive.outputs.cache-hit == 'true' }}
 runs:
   using: "composite"
   steps:
@@ -57,11 +57,18 @@ runs:
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: inputs
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         VERSION="${{ inputs.version }}"
         INSTALL_DIRECTORY="${{ inputs.install-directory }}"
+        ARTIFACTS='[]'
         if [ -z "$VERSION" ]; then
-          curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.io/${{ inputs.name }}/versions"
+          curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.io/${{ inputs.name }}/versions" || (
+            [[ '${{ inputs.cache }}' == 'true' ]] &&
+            echo "Using fallback cache" &&
+            gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_versions' --dir '${{ inputs.name }}' &&
+            echo "::set-output name=cache-hit::true")
           VERSION="$(grep -v rc "${{ inputs.name }}/versions" | tail -n 1)"
         fi
         if [ -z "$INSTALL_DIRECTORY" ]; then
@@ -71,15 +78,25 @@ runs:
             INSTALL_DIRECTORY="/usr/local/bin"
           fi
         fi
+        if [ '${{ inputs.cache }}' == 'true' ]; then
+          ARTIFACTS="$(gh api --paginate 'repos/${{ github.repository }}/actions/artifacts' | jq '.artifacts | map(.name)' | jq -cs 'add')"
+        fi
         echo "version=$VERSION"
         echo "install-directory=$INSTALL_DIRECTORY"
         echo "::set-output name=version::$VERSION"
         echo "::set-output name=install-directory::$INSTALL_DIRECTORY"
+        echo "::set-output name=artifacts::$ARTIFACTS"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: dist
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
-        curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json"
+        curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json" || (
+          [[ '${{ inputs.cache }}' == 'true' ]] &&
+          echo "Using fallback cache" &&
+          gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json' --dir '${{ inputs.name }}' &&
+          echo "::set-output name=cache-hit::true")
         LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' "${{ inputs.name }}/dist.json")"
         ARCHIVE="$(basename "$LINK")"
         SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' "${{ inputs.name }}/dist.json")"
@@ -87,18 +104,20 @@ runs:
         echo "archive=$ARCHIVE"
         echo "sha512=$SHA512"
         echo "::set-output name=link::$LINK"
+        echo "::set-output name=_link::${LINK//\//_}"
         echo "::set-output name=archive::$ARCHIVE"
         echo "::set-output name=sha512::$SHA512"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: archive-cache
-      if: inputs.cache == 'true'
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
-        key: dist-v0-${{ steps.dist.outputs.archive }}
-    - if: inputs.cache != 'true' || steps.archive-cache.outputs.cache-hit != 'true'
-      run: curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
+    - id: archive
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}" || (
+          [[ '${{ inputs.cache }}' == 'true' ]] &&
+          echo "Using fallback cache" &&
+          gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}' &&
+          echo "::set-output name=cache-hit::true")
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - if: steps.dist.outputs.sha512 != ''
@@ -132,8 +151,25 @@ runs:
         echo "::set-output name=executables::$EXECUTABLES"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
+    - if: inputs.cache == 'true' && inputs.version == '' && steps.inputs.outputs.cache-hit != 'true'
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'download-ipfs-distribution-action_${{ inputs.name }}_versions'
+        path: '${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions'
+        retention-days: 1
+    - if: inputs.cache == 'true' && ! contains(fromJson(steps.inputs.outputs.artifacts), format('download-ipfs-distribution-action_{0}_{1}_dist.json', inputs.name, steps.inputs.outputs.version ))
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json'
+        path: '${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json'
+    - if: inputs.cache == 'true' && ! contains(fromJson(steps.inputs.outputs.artifacts), format('download-ipfs-distribution-action_{0}_{1}{2}', inputs.name, steps.inputs.outputs.version, steps.dist.outputs._link))
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}'
+        path: '${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}'
     - if: always()
       run: |
         rm -r "${{ inputs.name }}"
+        rm "${{ steps.dist.outputs.archive }}"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
