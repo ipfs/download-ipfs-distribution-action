@@ -1,6 +1,6 @@
 # Download IPFS Distribution Action
 
-The action downloads a distribution from [dist.ipfs.io](https://dist.ipfs.io) and puts it on `PATH`.
+The action downloads a distribution from [dist.ipfs.tech](https://dist.ipfs.tech) and puts it on `PATH`.
 
 ## Inputs
 

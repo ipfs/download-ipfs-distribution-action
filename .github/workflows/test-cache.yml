@@ -26,10 +26,10 @@ jobs:
         with:
           path: download-ipfs-distribution-action
       - if: runner.os != 'Windows'
-        run: echo '127.0.0.1 dist.ipfs.io' | sudo tee -a /etc/hosts
+        run: echo '127.0.0.1 dist.ipfs.tech' | sudo tee -a /etc/hosts
         shell: bash
       - if: runner.os == 'Windows'
-        run: echo '127.0.0.1 dist.ipfs.io' | tee -a C:/windows/system32/drivers/etc/hosts
+        run: echo '127.0.0.1 dist.ipfs.tech' | tee -a C:/windows/system32/drivers/etc/hosts
         shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action

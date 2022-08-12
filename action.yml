@@ -1,5 +1,5 @@
 name: 'Download IPFS Distribution'
-description: 'Download executable from dist.ipfs.io'
+description: 'Download executable from dist.ipfs.tech'
 inputs:
   name:
     description: 'Name of the distribution to download'
@@ -64,7 +64,7 @@ runs:
         INSTALL_DIRECTORY="${{ inputs.install-directory }}"
         ARTIFACTS='[]'
         if [ -z "$VERSION" ]; then
-          curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.io/${{ inputs.name }}/versions" || (
+          curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.tech/${{ inputs.name }}/versions" || (
             [[ '${{ inputs.cache }}' == 'true' ]] &&
             echo "Using fallback cache" &&
             gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_versions' --dir '${{ inputs.name }}' &&
@@ -92,7 +92,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
-        curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json" || (
+        curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json" || (
           [[ '${{ inputs.cache }}' == 'true' ]] &&
           echo "Using fallback cache" &&
           gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json' --dir '${{ inputs.name }}' &&
@@ -113,7 +113,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
-        curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.io/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}" || (
+        curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}" || (
           [[ '${{ inputs.cache }}' == 'true' ]] &&
           echo "Using fallback cache" &&
           gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}' &&
