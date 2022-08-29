@@ -1,0 +1,15 @@
+name: Test Cache Upload
+on: [push]
+jobs:
+  Cache-Upload:
+    name: Cache Upload
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: download-ipfs-distribution-action
+      - uses: ./download-ipfs-distribution-action
