@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.2.1] - 2022-08-29
+### Changed
+- distribution source from *dist.ipfs.io* to [dist.ipfs.tech](https://dist.ipfs.tech)
+
 ## [1.2.0] - 2022-03-23
 ### Added
 - cache support for `versions` and `dist.json`
@@ -37,4 +41,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2021-12-14
 ### Added
-- action that downloads a distribution from [dist.ipfs.tech](https://dist.ipfs.tech) and puts it on `PATH`
+- action that downloads a distribution from [dist.ipfs.io](https://dist.ipfs.io) and puts it on `PATH`
