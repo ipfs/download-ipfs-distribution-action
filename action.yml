@@ -152,18 +152,18 @@ runs:
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - if: inputs.cache == 'true' && inputs.version == '' && steps.inputs.outputs.cache-hit != 'true'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'download-ipfs-distribution-action_${{ inputs.name }}_versions'
         path: '${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions'
         retention-days: 1
     - if: inputs.cache == 'true' && ! contains(fromJson(steps.inputs.outputs.artifacts), format('download-ipfs-distribution-action_{0}_{1}_dist.json', inputs.name, steps.inputs.outputs.version ))
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json'
         path: '${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json'
     - if: inputs.cache == 'true' && ! contains(fromJson(steps.inputs.outputs.artifacts), format('download-ipfs-distribution-action_{0}_{1}{2}', inputs.name, steps.inputs.outputs.version, steps.dist.outputs._link))
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}'
         path: '${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}'
