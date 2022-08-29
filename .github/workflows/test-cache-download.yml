@@ -9,13 +9,14 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
       fail-fast: false
     steps:
-      - name: Wait for Cache Download
-        uses: lewagon/wait-on-check-action@752bfae19aef55dab12a00bc36d48acc46b77e9d # v1.1.1
+      - name: Wait for Cache Upload
+        uses: lewagon/wait-on-check-action@e2558238c09778af25867eb5de5a3ce4bbae3dcd # v1.1.2
         with:
           ref: ${{ github.ref }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
+          wait-interval: 20
           check-name: 'Cache Upload (${{ matrix.os }})'
+          allowed-conclusions: success
       - uses: actions/checkout@v2
         with:
           path: download-ipfs-distribution-action
