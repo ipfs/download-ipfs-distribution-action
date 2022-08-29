@@ -1,6 +1,18 @@
 name: Test Cache Download
 on: [push]
 jobs:
+  Wait-For-Cache-Upload:
+    name: Wait for Cache Upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Cache Upload
+        uses: lewagon/wait-on-check-action@e2558238c09778af25867eb5de5a3ce4bbae3dcd # v1.1.2
+        with:
+          ref: ${{ github.ref }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 20
+          check-regexp: 'Cache Upload \(.*\)'
+          allowed-conclusions: success
   Cache-Download:
     name: Cache Download
     runs-on: ${{ matrix.os }}
@@ -9,14 +21,6 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
       fail-fast: false
     steps:
-      - name: Wait for Cache Upload
-        uses: lewagon/wait-on-check-action@e2558238c09778af25867eb5de5a3ce4bbae3dcd # v1.1.2
-        with:
-          ref: ${{ github.ref }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 20
-          check-name: 'Cache Upload (${{ matrix.os }})'
-          allowed-conclusions: success
       - uses: actions/checkout@v2
         with:
           path: download-ipfs-distribution-action
