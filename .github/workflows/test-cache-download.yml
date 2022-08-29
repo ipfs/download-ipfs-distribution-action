@@ -1,27 +1,21 @@
-name: Test Cache
+name: Test Cache Download
 on: [push]
 jobs:
-  Use-Action:
-    name: Use Action
+  Cache-Download:
+    name: Cache Download
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - name: Wait for Cache Download
+        uses: lewagon/wait-on-check-action@752bfae19aef55dab12a00bc36d48acc46b77e9d # v1.1.1
         with:
-          path: download-ipfs-distribution-action
-      - uses: ./download-ipfs-distribution-action
-  Use-Action-Again:
-    needs: [Use-Action]
-    name: Use Action Again
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-      fail-fast: false
-    steps:
+          ref: ${{ github.ref }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          check-name: 'Cache Upload (${{ matrix.os }})'
       - uses: actions/checkout@v2
         with:
           path: download-ipfs-distribution-action
