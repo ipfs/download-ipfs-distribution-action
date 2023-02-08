@@ -49,9 +49,9 @@ runs:
         echo "working-directory=$WORKING_DIRECTORY"
         echo "os=$OS"
         echo "arch=$ARCH"
-        echo "::set-output name=working-directory::$WORKING_DIRECTORY"
-        echo "::set-output name=os::$OS"
-        echo "::set-output name=arch::$ARCH"
+        echo "working-directory=$WORKING_DIRECTORY" >> $GITHUB_OUTPUT
+        echo "os=$OS" >> $GITHUB_OUTPUT
+        echo "arch=$ARCH" >> $GITHUB_OUTPUT
       shell: bash
     - run: mkdir "${{ inputs.name }}"
       shell: bash
@@ -68,7 +68,7 @@ runs:
             [[ '${{ inputs.cache }}' == 'true' ]] &&
             echo "Using fallback cache" &&
             gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_versions' --dir '${{ inputs.name }}' &&
-            echo "::set-output name=cache-hit::true")
+            echo "cache-hit=true" >> $GITHUB_OUTPUT)
           VERSION="$(grep -v rc "${{ inputs.name }}/versions" | tail -n 1)"
         fi
         if [ -z "$INSTALL_DIRECTORY" ]; then
@@ -83,9 +83,9 @@ runs:
         fi
         echo "version=$VERSION"
         echo "install-directory=$INSTALL_DIRECTORY"
-        echo "::set-output name=version::$VERSION"
-        echo "::set-output name=install-directory::$INSTALL_DIRECTORY"
-        echo "::set-output name=artifacts::$ARTIFACTS"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "install-directory=$INSTALL_DIRECTORY" >> $GITHUB_OUTPUT
+        echo "artifacts=$ARTIFACTS" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: dist
@@ -96,17 +96,17 @@ runs:
           [[ '${{ inputs.cache }}' == 'true' ]] &&
           echo "Using fallback cache" &&
           gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json' --dir '${{ inputs.name }}' &&
-          echo "::set-output name=cache-hit::true")
+          echo "cache-hit=true" >> $GITHUB_OUTPUT)
         LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' "${{ inputs.name }}/dist.json")"
         ARCHIVE="$(basename "$LINK")"
         SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' "${{ inputs.name }}/dist.json")"
         echo "link=$LINK"
         echo "archive=$ARCHIVE"
         echo "sha512=$SHA512"
-        echo "::set-output name=link::$LINK"
-        echo "::set-output name=_link::${LINK//\//_}"
-        echo "::set-output name=archive::$ARCHIVE"
-        echo "::set-output name=sha512::$SHA512"
+        echo "link=$LINK" >> $GITHUB_OUTPUT
+        echo "_link=${LINK//\//_}" >> $GITHUB_OUTPUT
+        echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
+        echo "sha512=$SHA512" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: archive
@@ -117,7 +117,7 @@ runs:
           [[ '${{ inputs.cache }}' == 'true' ]] &&
           echo "Using fallback cache" &&
           gh run download --repo '${{ github.repository }}' --name 'download-ipfs-distribution-action_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}' &&
-          echo "::set-output name=cache-hit::true")
+          echo "cache-hit=true" >> $GITHUB_OUTPUT)
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - if: steps.dist.outputs.sha512 != ''
@@ -147,8 +147,8 @@ runs:
         EXECUTABLES="$(jq -nc '$ARGS.positional' --args ${EXECUTABLES[@]})"
         echo "executable=$EXECUTABLE"
         echo "executables=$EXECUTABLES"
-        echo "::set-output name=executable::$EXECUTABLE"
-        echo "::set-output name=executables::$EXECUTABLES"
+        echo "executable=$EXECUTABLE" >> $GITHUB_OUTPUT
+        echo "executables=$EXECUTABLES" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - if: inputs.cache == 'true' && inputs.version == '' && steps.inputs.outputs.cache-hit != 'true'
