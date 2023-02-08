@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.2.2] - 2023-02-08
+### Fixed
+- stop using deprecated set-output command
+
 ## [1.2.1] - 2022-08-29
 ### Changed
 - distribution source from *dist.ipfs.io* to [dist.ipfs.tech](https://dist.ipfs.tech)
