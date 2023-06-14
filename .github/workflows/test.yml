@@ -10,7 +10,7 @@ jobs:
         name: [go-ipfs, fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           path: download-ipfs-distribution-action
       - id: distribution
