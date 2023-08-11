@@ -140,7 +140,7 @@ runs:
       run: |
         EXECUTABLES=()
         for executable in $(find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"); do
-          cp "$executable" "${{ steps.inputs.outputs.install-directory }}/$EXECUTABLE"
+          sudo cp "$executable" "${{ steps.inputs.outputs.install-directory }}/$EXECUTABLE"
           EXECUTABLES+=("$(basename $executable)")
         done
         EXECUTABLE="${EXECUTABLES[0]}"
