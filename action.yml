@@ -137,10 +137,20 @@ runs:
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: copy
+      env:
+        NAME: ${{ inputs.name }}
+        INSTALL_DIRECTORY: ${{ steps.inputs.outputs.install-directory }}
       run: |
         EXECUTABLES=()
-        for executable in $(find ${{ inputs.name }} -type f -perm -111 ! -name "*.sh"); do
-          cp "$executable" "${{ steps.inputs.outputs.install-directory }}/$EXECUTABLE"
+        for executable in $(find $NAME -type f -perm -111 ! -name "*.sh"); do
+          if [ -w "$INSTALL_DIRECTORY" ]; then
+            cp "$executable" "$INSTALL_DIRECTORY/$EXECUTABLE"
+          elif [ -x "$(command -v sudo)" ]; then
+            sudo cp "$executable" "$INSTALL_DIRECTORY/$EXECUTABLE"
+          else
+            echo "Unable to install $EXECUTABLE to $INSTALL_DIRECTORY"
+            exit 1
+          fi
           EXECUTABLES+=("$(basename $executable)")
         done
         EXECUTABLE="${EXECUTABLES[0]}"
