@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.2.3] - 2023-08-11
+### Changed
+- use sudo to cp executables to install directory
+
 ## [1.2.2] - 2023-02-08
 ### Fixed
 - stop using deprecated set-output command
