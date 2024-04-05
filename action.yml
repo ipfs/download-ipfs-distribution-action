@@ -4,7 +4,7 @@ inputs:
   name:
     description: 'Name of the distribution to download'
     required: true
-    default: 'go-ipfs'
+    default: 'kubo'
   version:
     description: 'Version of the distribution to download(defaults to latest stable version)'
     required: false

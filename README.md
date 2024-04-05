@@ -6,7 +6,7 @@ The action downloads a distribution from [dist.ipfs.tech](https://dist.ipfs.tech
 
 | Name | Description | Default |
 | --- | --- | --- |
-| name | Name of the distribution to download | go-ipfs |
+| name | Name of the distribution to download | kubo |
 | version | Version of the distribution to download | *last stable version* |
 | working-directory | Directory where the action is going to be performed; the downloaded artifacts are cleaned up afterwards | runner.temp |
 | install-directory | Directory where the executable is going to be copied | **linux, macos:** /usr/local/bin; **windows:** /usr/bin |
@@ -25,7 +25,7 @@ The action downloads a distribution from [dist.ipfs.tech](https://dist.ipfs.tech
 ```
 - uses: ipfs/download-ipfs-distribution-action@v1
   with:
-    name: go-ipfs
+    name: kubo
 - run: ipfs --help
   shell: bash
 ```
