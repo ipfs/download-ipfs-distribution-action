@@ -7,7 +7,7 @@ jobs:
     steps:
       - run: echo "C:/msys64/usr/bin" >> $GITHUB_PATH
         shell: bash
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: download-ipfs-distribution-action
       - id: distribution
