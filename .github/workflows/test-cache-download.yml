@@ -14,6 +14,7 @@ jobs:
           check-regexp: 'Cache Upload \(.*\)'
           allowed-conclusions: success
   Cache-Download:
+    needs: Wait-For-Cache-Upload
     name: Cache Download
     runs-on: ${{ matrix.os }}
     strategy:

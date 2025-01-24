@@ -111,6 +111,10 @@ runs:
         echo "_link=${LINK//\//_}" >> $GITHUB_OUTPUT
         echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
         echo "sha512=$SHA512" >> $GITHUB_OUTPUT
+        if [[ "$LINK" == '' ]]; then
+          echo "::error::Could not find download link for '${{ inputs.name }}@${{ steps.inputs.outputs.version }}' (${{ steps.system.outputs.os }} ${{ steps.system.outputs.arch }}) on dist.ipfs.tech"
+          exit 1
+        fi
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: archive
