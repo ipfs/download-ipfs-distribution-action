@@ -25,7 +25,7 @@ jobs:
           fi
         shell: bash
       - if: ${{ env.TAG != '' }}
-        uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5 # v1.13.0
+        uses: ncipollo/release-action@cdcc88a9acf3ca41c16c37bb7d21b9ad48560d87 # v1.15.0
         with:
           body: |
             ${{ env.BODY }}
