@@ -14,6 +14,7 @@ jobs:
           check-regexp: 'Cache Upload \(.*\)'
           allowed-conclusions: success
   Cache-Download:
+    needs: Wait-For-Cache-Upload
     name: Cache Download
     runs-on: ${{ matrix.os }}
     strategy:
@@ -32,6 +33,8 @@ jobs:
         shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action
+        with:
+          prefix: test-cache-${{ matrix.os }}
       - if: ${{ steps.distribution.outputs.cache-hit != 'true' }}
         run: exit 1
         shell: bash
