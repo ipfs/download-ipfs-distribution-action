@@ -32,6 +32,8 @@ jobs:
         shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action
+        with:
+          prefix: test-cache-${{ matrix.os }}
       - if: ${{ steps.distribution.outputs.cache-hit != 'true' }}
         run: exit 1
         shell: bash

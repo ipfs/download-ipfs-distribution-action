@@ -13,3 +13,5 @@ jobs:
         with:
           path: download-ipfs-distribution-action
       - uses: ./download-ipfs-distribution-action
+        with:
+          prefix: test-cache-${{ matrix.os }}

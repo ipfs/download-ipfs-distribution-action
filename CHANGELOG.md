@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - default `name` changed from `go-ipfs` to `kubo` (see [ipfs/kubo#8959](https://github.com/ipfs/kubo/issues/8959) for wider context)
 
+## [1.3.0] - 2023-01-24
+### Added
+- a prefix input which allows controlling the GitHub Actions artifacts name prefixes
+
+### Changed
+- update the upload-artifact action to v4
+
 ## [1.2.3] - 2023-08-11
 ### Changed
 - use sudo to cp executables to install directory
