@@ -31,7 +31,7 @@ outputs:
     value: ${{ steps.copy.outputs.executables }}
   cache-hit:
     description: "A boolean value to indicate the fallback cache was used"
-    value: ${{ steps.inputs.outputs.cache-hit == 'true' || steps.dist.outputs.cache-hit == 'true' || steps.archive.outputs.cache-hit == 'true' }}
+    value: ${{ steps.versions-cache.outputs.cache-hit == 'true' || steps.dist-cache.outputs.cache-hit == 'true' || steps.archive-cache.outputs.cache-hit == 'true' }}
 runs:
   using: "composite"
   steps:
@@ -60,19 +60,33 @@ runs:
     - run: mkdir "${{ inputs.name }}"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
+    - id: versions-download
+      if: inputs.version == ''
+      run: curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.tech/${{ inputs.name }}/versions"
+      continue-on-error: ${{ inputs.cache == 'true' }}
+      shell: bash
+      working-directory: ${{ steps.system.outputs.working-directory }}
+    - id: versions-cache
+      if: inputs.version == '' && inputs.cache == 'true' && steps.versions-download.outcome == 'failure'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
+        key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
+        fail-on-cache-miss: true
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-download.outcome == 'success'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
+        key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
+        retention-days: 1
+      continue-on-error: true
     - id: inputs
       env:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
         VERSION="${{ inputs.version }}"
         INSTALL_DIRECTORY="${{ inputs.install-directory }}"
-        ARTIFACTS='[]'
         if [ -z "$VERSION" ]; then
-          curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.tech/${{ inputs.name }}/versions" || (
-            [[ '${{ inputs.cache }}' == 'true' ]] &&
-            echo "Using fallback cache" &&
-            gh run download --repo '${{ github.repository }}' --name '${{ inputs.prefix }}_${{ inputs.name }}_versions' --dir '${{ inputs.name }}' &&
-            echo "cache-hit=true" >> $GITHUB_OUTPUT)
           VERSION="$(grep -v rc "${{ inputs.name }}/versions" | tail -n 1)"
         fi
         if [ -z "$INSTALL_DIRECTORY" ]; then
@@ -82,25 +96,34 @@ runs:
             INSTALL_DIRECTORY="/usr/local/bin"
           fi
         fi
-        if [ '${{ inputs.cache }}' == 'true' ]; then
-          ARTIFACTS="$(gh api --paginate 'repos/${{ github.repository }}/actions/artifacts' | jq '.artifacts | map(.name)' | jq -cs 'add')"
-        fi
         echo "version=$VERSION"
         echo "install-directory=$INSTALL_DIRECTORY"
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "install-directory=$INSTALL_DIRECTORY" >> $GITHUB_OUTPUT
-        echo "artifacts=$ARTIFACTS" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
+    - id: dist-download
+      run: curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json"
+      continue-on-error: ${{ inputs.cache == 'true' }}
+      shell: bash
+      working-directory: ${{ steps.system.outputs.working-directory }}
+    - id: dist-cache
+      if: inputs.cache == 'true' && steps.dist-download.outcome == 'failure'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
+        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json
+        fail-on-cache-miss: true
+    - if: inputs.cache == 'true' && steps.dist-download.outcome == 'success'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
+        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json
+      continue-on-error: true
     - id: dist
       env:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
-        curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json" || (
-          [[ '${{ inputs.cache }}' == 'true' ]] &&
-          echo "Using fallback cache" &&
-          gh run download --repo '${{ github.repository }}' --name '${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json' --dir '${{ inputs.name }}' &&
-          echo "cache-hit=true" >> $GITHUB_OUTPUT)
         LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' "${{ inputs.name }}/dist.json")"
         ARCHIVE="$(basename "$LINK")"
         SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' "${{ inputs.name }}/dist.json")"
@@ -117,17 +140,24 @@ runs:
         fi
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: archive
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      run: |
-        curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}" || (
-          [[ '${{ inputs.cache }}' == 'true' ]] &&
-          echo "Using fallback cache" &&
-          gh run download --repo '${{ github.repository }}' --name '${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}' &&
-          echo "cache-hit=true" >> $GITHUB_OUTPUT)
+    - id: archive-download
+      run: curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
+      continue-on-error: ${{ inputs.cache == 'true' }}
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
+    - id: archive-cache
+      if: inputs.cache == 'true' && steps.archive-download.outcome == 'failure'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
+        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}
+        fail-on-cache-miss: true
+    - if: inputs.cache == 'true' && steps.archive-download.outcome == 'success'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
+        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}
+      continue-on-error: true
     - if: steps.dist.outputs.sha512 != ''
       run: |
         CMD="sha512sum"
@@ -169,22 +199,6 @@ runs:
         echo "executables=$EXECUTABLES" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - if: inputs.cache == 'true' && inputs.version == '' && steps.inputs.outputs.cache-hit != 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: '${{ inputs.prefix }}_${{ inputs.name }}_versions'
-        path: '${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions'
-        retention-days: 1
-    - if: inputs.cache == 'true' && ! contains(fromJson(steps.inputs.outputs.artifacts), format('{0}_{1}_{2}_dist.json', inputs.prefix, inputs.name, steps.inputs.outputs.version ))
-      uses: actions/upload-artifact@v4
-      with:
-        name: '${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json'
-        path: '${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json'
-    - if: inputs.cache == 'true' && ! contains(fromJson(steps.inputs.outputs.artifacts), format('{0}_{1}_{2}{3}', inputs.prefix, inputs.name, steps.inputs.outputs.version, steps.dist.outputs._link))
-      uses: actions/upload-artifact@v4
-      with:
-        name: '${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}'
-        path: '${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}'
     - if: always()
       run: |
         rm -r "${{ inputs.name }}"
