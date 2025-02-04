@@ -74,6 +74,7 @@ runs:
         key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
         lookup-only: ${{ steps.versions-download.outcome == 'success' }}
         fail-on-cache-miss: ${{ steps.versions-download.outcome == 'failure' }}
+      continue-on-error: ${{ steps.versions-download.outcome == 'success' }}
     - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-cache.outputs.cache-hit == 'false'
       uses: actions/cache/save@v4
       with:
@@ -116,6 +117,7 @@ runs:
         key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json
         lookup-only: ${{ steps.dist-download.outcome == 'success' }}
         fail-on-cache-miss: ${{ steps.dist-download.outcome == 'failure' }}
+      continue-on-error: ${{ steps.dist-download.outcome == 'success' }}
     - if: inputs.version == '' && inputs.cache == 'true' && steps.dist-cache.outputs.cache-hit == 'false'
       uses: actions/cache/save@v4
       with:
@@ -155,6 +157,7 @@ runs:
         key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}
         lookup-only: ${{ steps.archive-download.outcome == 'success' }}
         fail-on-cache-miss: ${{ steps.archive-download.outcome == 'failure' }}
+      continue-on-error: ${{ steps.archive-download.outcome == 'success' }}
     - if: inputs.version == '' && inputs.cache == 'true' && steps.archive-cache.outputs.cache-hit == 'false'
       uses: actions/cache/save@v4
       with:
