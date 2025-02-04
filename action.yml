@@ -67,13 +67,14 @@ runs:
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: versions-cache
-      if: inputs.version == '' && inputs.cache == 'true' && steps.versions-download.outcome == 'failure'
+      if: inputs.version == '' && inputs.cache == 'true'
       uses: actions/cache/restore@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
         key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
-        fail-on-cache-miss: true
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-download.outcome == 'success'
+        lookup-only: ${{ steps.versions-download.outcome == 'success' }}
+        fail-on-cache-miss: ${{ steps.versions-download.outcome == 'failure' }}
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-cache.outputs.cache-hit == 'false'
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
@@ -108,13 +109,14 @@ runs:
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: dist-cache
-      if: inputs.cache == 'true' && steps.dist-download.outcome == 'failure'
+      if: inputs.cache == 'true'
       uses: actions/cache/restore@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
         key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json
-        fail-on-cache-miss: true
-    - if: inputs.cache == 'true' && steps.dist-download.outcome == 'success'
+        lookup-only: ${{ steps.dist-download.outcome == 'success' }}
+        fail-on-cache-miss: ${{ steps.dist-download.outcome == 'failure' }}
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.dist-cache.outputs.cache-hit == 'false'
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
@@ -146,13 +148,14 @@ runs:
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: archive-cache
-      if: inputs.cache == 'true' && steps.archive-download.outcome == 'failure'
+      if: inputs.cache == 'true'
       uses: actions/cache/restore@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
         key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}
-        fail-on-cache-miss: true
-    - if: inputs.cache == 'true' && steps.archive-download.outcome == 'success'
+        lookup-only: ${{ steps.archive-download.outcome == 'success' }}
+        fail-on-cache-miss: ${{ steps.archive-download.outcome == 'failure' }}
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.archive-cache.outputs.cache-hit == 'false'
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
