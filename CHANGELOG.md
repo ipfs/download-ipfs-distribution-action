@@ -5,11 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [1.4.0] - 2025-02-05
 ### Changed
 - default `name` changed from `go-ipfs` to `kubo` (see [ipfs/kubo#8959](https://github.com/ipfs/kubo/issues/8959) for wider context)
 - the fallback cache is now backed by the GitHub Actions cache instead of job artifacts
 
-## [1.3.0] - 2023-01-24
+## [1.3.0] - 2025-01-24
 ### Added
 - a prefix input which allows controlling the GitHub Actions artifacts name prefixes
 
