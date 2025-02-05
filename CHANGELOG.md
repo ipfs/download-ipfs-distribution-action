@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 - default `name` changed from `go-ipfs` to `kubo` (see [ipfs/kubo#8959](https://github.com/ipfs/kubo/issues/8959) for wider context)
+- the fallback cache is now backed by the GitHub Actions cache instead of job artifacts
 
 ## [1.3.0] - 2023-01-24
 ### Added
