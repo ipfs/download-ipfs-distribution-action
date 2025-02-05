@@ -80,7 +80,6 @@ runs:
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
         key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
-        retention-days: 1
       continue-on-error: true
     - id: inputs
       env:

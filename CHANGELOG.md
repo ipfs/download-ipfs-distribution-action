@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.4.1] - 2025-02-05
+### Changed
+- remove the unused `retention-days` input from the `actions/cache/save` step
+
 ## [1.4.0] - 2025-02-05
 ### Changed
 - default `name` changed from `go-ipfs` to `kubo` (see [ipfs/kubo#8959](https://github.com/ipfs/kubo/issues/8959) for wider context)
