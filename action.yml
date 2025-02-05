@@ -31,7 +31,7 @@ outputs:
     value: ${{ steps.copy.outputs.executables }}
   cache-hit:
     description: "A boolean value to indicate the fallback cache was used"
-    value: ${{ steps.versions-cache.outputs.cache-hit == 'true' || steps.dist-cache.outputs.cache-hit == 'true' || steps.archive-cache.outputs.cache-hit == 'true' }}
+    value: ${{ (steps.versions-download.outcome == 'failure' && steps.versions-cache.outcome == 'success') || (steps.dist-download.outcome == 'failure' && steps.dist-cache.outcome == 'success') || (steps.archive-download.outcome == 'failure' && steps.archive-cache.outcome == 'success') }}
 runs:
   using: "composite"
   steps:
@@ -75,7 +75,7 @@ runs:
         lookup-only: ${{ steps.versions-download.outcome == 'success' }}
         fail-on-cache-miss: ${{ steps.versions-download.outcome == 'failure' }}
       continue-on-error: ${{ steps.versions-download.outcome == 'success' }}
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-cache.outputs.cache-hit == 'false'
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-cache.outputs.cache-hit == ''
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
@@ -118,7 +118,7 @@ runs:
         lookup-only: ${{ steps.dist-download.outcome == 'success' }}
         fail-on-cache-miss: ${{ steps.dist-download.outcome == 'failure' }}
       continue-on-error: ${{ steps.dist-download.outcome == 'success' }}
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.dist-cache.outputs.cache-hit == 'false'
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.dist-cache.outputs.cache-hit == ''
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
@@ -158,7 +158,7 @@ runs:
         lookup-only: ${{ steps.archive-download.outcome == 'success' }}
         fail-on-cache-miss: ${{ steps.archive-download.outcome == 'failure' }}
       continue-on-error: ${{ steps.archive-download.outcome == 'success' }}
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.archive-cache.outputs.cache-hit == 'false'
+    - if: inputs.version == '' && inputs.cache == 'true' && steps.archive-cache.outputs.cache-hit == ''
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
