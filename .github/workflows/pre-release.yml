@@ -1,5 +1,5 @@
 name: Pre Release
-on: 
+on:
   pull_request:
     paths: [CHANGELOG.md]
     branches: [master]
@@ -8,7 +8,7 @@ jobs:
     name: Post Comment
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: |
           source .github/scripts/changelog.sh
           git fetch origin --tags
@@ -20,7 +20,7 @@ jobs:
           fi
         shell: bash
       - if: ${{ env.TAG != '' }}
-        uses: marocchino/sticky-pull-request-comment@52423e01640425a022ef5fd42c6fb5f633a02728 # v2.9.1
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         with:
           header: pre-release
           recreate: true
