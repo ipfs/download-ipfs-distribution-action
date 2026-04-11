@@ -13,7 +13,7 @@ jobs:
       - id: distribution
         uses: ./download-ipfs-distribution-action
         with:
-          name: go-ipfs
+          name: kubo
           cache: false
       - run: ${{ steps.distribution.outputs.executable }} --help
         shell: bash
