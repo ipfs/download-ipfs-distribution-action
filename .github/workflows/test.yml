@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        name: [kubo, go-ipfs, fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
+        name: [kubo, fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
         exclude:
           - os: macos-latest
             name: gx
@@ -19,7 +19,7 @@ jobs:
             name: ipget
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: download-ipfs-distribution-action
       - id: distribution

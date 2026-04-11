@@ -7,13 +7,13 @@ jobs:
     steps:
       - run: echo "C:/msys64/usr/bin" >> $GITHUB_PATH
         shell: bash
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: download-ipfs-distribution-action
       - id: distribution
         uses: ./download-ipfs-distribution-action
         with:
-          name: go-ipfs
+          name: kubo
           cache: false
       - run: ${{ steps.distribution.outputs.executable }} --help
         shell: bash
