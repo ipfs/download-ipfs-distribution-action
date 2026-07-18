@@ -25,19 +25,26 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: download-ipfs-distribution-action
-      # Block github.com, where the release asset download starts, so the artifact cannot be
-      # fetched. resolve still reaches api.github.com for the version and digest, and the
-      # Actions cache service is a separate host, so a passing run with cache-hit proves the
-      # archive was restored from cache and the download was skipped, not re-fetched. The
-      # hosts file is backed up and restored below, so this is safe on self-hosted runners too
-      # (GitHub-hosted runners are ephemeral and discard the change regardless).
-      - name: Block github.com
+      # Permit release metadata requests but reject the octet-stream asset request. A passing
+      # run therefore proves that the archive was restored and the download step was skipped.
+      - name: Reject release asset downloads
         run: |
-          set -euo pipefail
-          priv() { if [ "$RUNNER_OS" = Windows ]; then "$@"; else sudo "$@"; fi; }
-          if [ "$RUNNER_OS" = Windows ]; then hosts="C:/Windows/System32/drivers/etc/hosts"; else hosts=/etc/hosts; fi
-          priv cp "$hosts" "$hosts.dl-bak"
-          echo '127.0.0.1 github.com' | priv tee -a "$hosts" >/dev/null
+          shim="$RUNNER_TEMP/reject-asset-download"
+          mkdir -p "$shim"
+          real_curl="$(command -v curl)"
+          echo "REAL_CURL=$real_curl" >> "$GITHUB_ENV"
+          echo "$shim" >> "$GITHUB_PATH"
+          cat > "$shim/curl" <<'EOF'
+          #!/usr/bin/env bash
+          for argument in "$@"; do
+            if [ "$argument" = "Accept: application/octet-stream" ]; then
+              echo "release asset download was not expected" >&2
+              exit 99
+            fi
+          done
+          exec "$REAL_CURL" "$@"
+          EOF
+          chmod +x "$shim/curl"
         shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action
@@ -50,12 +57,4 @@ jobs:
         run: exit 1
         shell: bash
       - run: ${{ steps.distribution.outputs.executable }} --help
-        shell: bash
-      - name: Restore hosts
-        if: always()
-        run: |
-          set -euo pipefail
-          priv() { if [ "$RUNNER_OS" = Windows ]; then "$@"; else sudo "$@"; fi; }
-          if [ "$RUNNER_OS" = Windows ]; then hosts="C:/Windows/System32/drivers/etc/hosts"; else hosts=/etc/hosts; fi
-          if [ -f "$hosts.dl-bak" ]; then priv mv "$hosts.dl-bak" "$hosts"; fi
         shell: bash
