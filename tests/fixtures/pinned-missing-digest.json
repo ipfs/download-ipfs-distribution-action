@@ -1,0 +1,13 @@
+{
+  "tag_name": "v1.2.2",
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2025-01-01T12:00:00Z",
+  "assets": [
+    {
+      "name": "kubo_v1.2.2_linux-amd64.tar.gz",
+      "url": "https://api.github.com/repos/example/private-releases/releases/assets/122",
+      "digest": null
+    }
+  ]
+}

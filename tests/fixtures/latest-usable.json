@@ -1,0 +1,13 @@
+{
+  "tag_name": "v1.2.3",
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2026-07-17T12:00:00Z",
+  "assets": [
+    {
+      "name": "kubo_v1.2.3_linux-amd64.tar.gz",
+      "url": "https://api.github.com/repos/example/private-releases/releases/assets/123",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}
