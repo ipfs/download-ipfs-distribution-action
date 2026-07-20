@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -u
 
 error() {
   echo "::error::$*"
@@ -52,7 +53,7 @@ api_get() {
     --connect-timeout 30 --max-time 120 \
     -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    "${auth[@]}" --write-out $'\n%{http_code}' "$GITHUB_API_URL/$endpoint")"; then
+    ${auth[@]+"${auth[@]}"} --write-out $'\n%{http_code}' "$GITHUB_API_URL/$endpoint")"; then
     API_STATUS="network"
     API_BODY=""
     return 1
