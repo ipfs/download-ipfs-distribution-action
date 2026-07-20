@@ -63,6 +63,28 @@ if run_resolver pinned v1.2.3 '../unsafe' > "$TMP/invalid-name.log" 2>&1; then
 fi
 grep -q 'name must start with an alphanumeric' "$TMP/invalid-name.log"
 
+run_unmapped() {
+  GITHUB_OUTPUT="$TMP/output" \
+  GITHUB_ACTION_PATH="$ROOT" \
+  CURL_BIN="$ROOT/tests/fake-curl.sh" \
+  NAME="not-in-the-map" VERSION="" GITHUB_REPO="" \
+  INSTALL_DIRECTORY="" OS="linux" ARCH="amd64" PREFIX="fixture" \
+  env "$@" bash -e -o pipefail "$ROOT/scripts/resolve-release.sh"
+}
+
+if run_unmapped GITHUB_ACTION_REPOSITORY="ipfs/download-ipfs-distribution-action" GITHUB_ACTION_REF="v2.0.0" \
+  > "$TMP/unmapped-remote.log" 2>&1; then
+  echo "expected an unmapped name to fail" >&2
+  exit 1
+fi
+grep -q 'blob/v2.0.0/distributions.json' "$TMP/unmapped-remote.log"
+
+if run_unmapped > "$TMP/unmapped-local.log" 2>&1; then
+  echo "expected an unmapped name to fail" >&2
+  exit 1
+fi
+grep -q "the action's distributions.json" "$TMP/unmapped-local.log"
+
 python3 "$ROOT/tests/redirect-server.py" "$TMP/redirect.log" "$TMP/port" &
 server_pid=$!
 for _ in $(seq 1 50); do

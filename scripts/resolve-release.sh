@@ -37,7 +37,14 @@ if [ -z "$REPO" ] && [ -f "$GITHUB_ACTION_PATH/distributions.json" ]; then
   REPO="$(jq -r --arg n "$NAME" '.[$n] // empty' "$GITHUB_ACTION_PATH/distributions.json")"
 fi
 if [ -z "$REPO" ]; then
-  error "No GitHub repository for '$NAME'. Set the github-repo input or add a mapping at https://github.com/ipfs/download-ipfs-distribution-action/blob/v2/distributions.json"
+  # Point at the map belonging to the ref the caller pinned, not at a hardcoded
+  # one: a moving tag or the default branch can list a repo this version cannot
+  # resolve. Both variables are empty when the action runs from a local path.
+  MAP_LOCATION="the action's distributions.json"
+  if [ -n "${GITHUB_ACTION_REPOSITORY:-}" ] && [ -n "${GITHUB_ACTION_REF:-}" ]; then
+    MAP_LOCATION="https://github.com/$GITHUB_ACTION_REPOSITORY/blob/$GITHUB_ACTION_REF/distributions.json"
+  fi
+  error "No GitHub repository for '$NAME'. Set the github-repo input, or add a mapping to $MAP_LOCATION"
   exit 1
 fi
 
