@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2026-07-18
+## [2.0.0] - 2026-07-20
 ### Added
 - `github-repo` input to override the built-in distribution-to-repo map (`distributions.json`) for distributions not in the map or to use a mirror
 - `github-token` input for reading releases and assets from another private repository
