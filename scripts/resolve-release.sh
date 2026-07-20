@@ -5,6 +5,10 @@ error() {
   echo "::error::$*"
 }
 
+# Shown whenever the API answers 401, 403 or 404: all three look identical from
+# here, and a scoped-down workflow token is the most common cause.
+TOKEN_HINT="If the repository is private, or the workflow token is scoped down, pass a token with Contents: read access through the github-token input."
+
 if ! [[ "$NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
   error "name must start with an alphanumeric character and contain only letters, numbers, dots, underscores, or hyphens"
   exit 1
@@ -83,11 +87,11 @@ valid_asset_line() {
 resolve_pinned() {
   ARCHIVE="${NAME}_${VERSION}_${SUFFIX}"
   if ! api_get "repos/$REPO/releases/tags/$VERSION"; then
-    if [ "$API_STATUS" = "404" ]; then
-      error "Release '$VERSION' was not found in '$REPO', or the token cannot read that repository"
-    else
-      error "Could not query release '$VERSION' in '$REPO' from the GitHub API (status: $API_STATUS)"
-    fi
+    case "$API_STATUS" in
+      404) error "Release '$VERSION' was not found in '$REPO'. $TOKEN_HINT" ;;
+      401|403) error "The GitHub API refused the request for release '$VERSION' in '$REPO' (status: $API_STATUS). $TOKEN_HINT" ;;
+      *) error "Could not query release '$VERSION' in '$REPO' from the GitHub API (status: $API_STATUS)" ;;
+    esac
     exit 1
   fi
 
@@ -146,11 +150,11 @@ resolve_latest() {
   local best_published=""
   while :; do
     if ! api_get "repos/$REPO/releases?per_page=100&page=$page"; then
-      if [ "$API_STATUS" = "404" ]; then
-        error "Repository '$REPO' was not found, or the token cannot read it"
-      else
-        error "Could not list releases in '$REPO' from the GitHub API (status: $API_STATUS)"
-      fi
+      case "$API_STATUS" in
+        404) error "Repository '$REPO' was not found. $TOKEN_HINT" ;;
+        401|403) error "The GitHub API refused the request to list releases in '$REPO' (status: $API_STATUS). $TOKEN_HINT" ;;
+        *) error "Could not list releases in '$REPO' from the GitHub API (status: $API_STATUS)" ;;
+      esac
       exit 1
     fi
     count="$(printf '%s' "$API_BODY" | jq 'length')"
