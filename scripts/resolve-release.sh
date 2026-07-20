@@ -151,10 +151,8 @@ resolve_latest() {
 
   local page=1
   local count
-  local candidate
-  local candidate_published
-  local best_line=""
-  local best_published=""
+  local page_candidates
+  local candidates=""
   while :; do
     if ! api_get "repos/$REPO/releases?per_page=100&page=$page"; then
       case "$API_STATUS" in
@@ -165,36 +163,53 @@ resolve_latest() {
       exit 1
     fi
     count="$(printf '%s' "$API_BODY" | jq 'length')"
-    candidate="$(printf '%s' "$API_BODY" | jq -r --arg name "$NAME" --arg suffix "$SUFFIX" '
-      [ .[]
-        | select(.draft == false and .prerelease == false)
-        | select(.tag_name | test("^[A-Za-z0-9][A-Za-z0-9._+-]*$"))
-        | . as $release
-        | ($name + "_" + $release.tag_name + "_" + $suffix) as $want
-        | $release.assets[]?
-        | select(.name == $want and ((.digest // "") | test("^sha256:[0-9A-Fa-f]{64}$")))
-        | [$release.published_at, $release.tag_name, .url, .digest]
-      ]
-      | (max_by(.[0]) // empty)
-      | @tsv')"
-    if [ -n "$candidate" ]; then
-      candidate_published="$(printf '%s' "$candidate" | cut -f1)"
-      if [ -z "$best_line" ] || [[ "$candidate_published" > "$best_published" ]]; then
-        best_line="$candidate"
-        best_published="$candidate_published"
-      fi
+    page_candidates="$(printf '%s' "$API_BODY" | jq -c --arg name "$NAME" --arg suffix "$SUFFIX" '
+      .[]
+      | select(.draft == false and .prerelease == false)
+      | select(.tag_name | test("^[A-Za-z0-9][A-Za-z0-9._+-]*$"))
+      | . as $release
+      | ($name + "_" + $release.tag_name + "_" + $suffix) as $want
+      | $release.assets[]?
+      | select(.name == $want and ((.digest // "") | test("^sha256:[0-9A-Fa-f]{64}$")))
+      | {tag: $release.tag_name, published: $release.published_at, url: .url, digest: .digest}')"
+    if [ -n "$page_candidates" ]; then
+      candidates="${candidates}${page_candidates}"$'\n'
     fi
     [ "$count" -lt 100 ] && break
     page=$((page + 1))
   done
 
+  # Order by version, not by publication date: a patch backported to an older
+  # line is published after the newer line's release, and picking by date would
+  # hand back the older binary. Tags that are not version-shaped cannot be
+  # compared that way, so those repos fall back to the newest published.
+  local best_line
+  best_line="$(printf '%s' "$candidates" | jq -s -r '
+    def pad3: if length >= 3 then . else . + [range(3 - length) | 0] end;
+    def semver_key:
+      (capture("^v?(?<core>[0-9]+(\\.[0-9]+)*)(?:[-+](?<pre>.*))?$") // null)
+      | if . == null then null
+        else
+          [ (.core | split(".") | map(tonumber) | pad3),
+            (if (.pre // "") == "" then 1 else 0 end),
+            (.pre // "") ]
+        end;
+    map(. + {key: (.tag | semver_key)})
+    | if length == 0 then empty
+      else
+        (map(select(.key != null))) as $versioned
+        | (if ($versioned | length) > 0 then ($versioned | max_by(.key)) else max_by(.published) end)
+        | [.tag, .url, .digest]
+        | @tsv
+      end')"
+
   if [ -z "$best_line" ]; then
     error "No stable, non-draft release of '$REPO' contains a verifiable '${NAME}_<version>_${SUFFIX}' asset"
     exit 1
   fi
-  VERSION="$(printf '%s' "$best_line" | cut -f2)"
-  ASSET_API_URL="$(printf '%s' "$best_line" | cut -f3)"
-  CHECKSUM="$(printf '%s' "$best_line" | cut -f4)"
+  VERSION="$(printf '%s' "$best_line" | cut -f1)"
+  ASSET_API_URL="$(printf '%s' "$best_line" | cut -f2)"
+  CHECKSUM="$(printf '%s' "$best_line" | cut -f3)"
   ARCHIVE="${NAME}_${VERSION}_${SUFFIX}"
 }
 

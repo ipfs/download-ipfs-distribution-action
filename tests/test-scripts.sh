@@ -36,6 +36,10 @@ grep -q '^archive=kubo_v1.2.3_linux-amd64.tar.gz$' "$TMP/output"
 run_resolver pagination ""
 grep -q '/releases?per_page=100&page=2$' "$TMP/calls"
 
+# v0.2.9 was published after v0.13.0, so ordering by date would pick the backport.
+run_resolver backport ""
+grep -q '^archive=kubo_v0.13.0_linux-amd64.tar.gz$' "$TMP/output"
+
 run_resolver pinned v1.2.3
 grep -q '^archive=kubo_v1.2.3_linux-amd64.tar.gz$' "$TMP/output"
 

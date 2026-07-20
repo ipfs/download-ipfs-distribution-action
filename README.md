@@ -5,7 +5,7 @@ The action downloads an IPFS distribution from [GitHub releases](https://github.
 ## How it works
 
 1. The distribution `name` is mapped to a GitHub `owner/repo` (see [`distributions.json`](distributions.json)); the `github-repo` input overrides the map.
-2. When `version` is empty, GitHub's designated latest stable, non-draft release is used if it ships a verifiable binary for the runner. If that release is incomplete, the newest published stable release with a matching binary and digest is used instead.
+2. When `version` is empty, GitHub's designated latest stable, non-draft release is used if it ships a verifiable binary for the runner. If that release is incomplete, the highest-versioned stable release with a matching binary and digest is used instead, so a patch backported to an older line does not win just because it was published later.
 3. The asset name is built from the version, OS and arch (`<name>_<version>_<os>-<arch>.tar.gz`, or `.zip` on windows); there is no manifest to fetch.
 4. The archive is restored from cache first; a hit skips the download. It is checksum-verified on every run, so a corrupt download or a tampered cache entry is caught.
 

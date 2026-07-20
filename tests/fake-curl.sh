@@ -22,19 +22,22 @@ fi
 
 case "$url" in
   */releases/latest)
-    if [ "${FIXTURE_SCENARIO:-}" = "latest-fallback" ] || [ "${FIXTURE_SCENARIO:-}" = "pagination" ]; then
+    if [ "${FIXTURE_SCENARIO:-}" = "latest-fallback" ] || [ "${FIXTURE_SCENARIO:-}" = "pagination" ] || [ "${FIXTURE_SCENARIO:-}" = "backport" ]; then
       fixture="latest-faulty.json"
     else
       fixture="latest-usable.json"
     fi
     ;;
   *'/releases?per_page=100&page=1')
-    if [ "${FIXTURE_SCENARIO:-}" = "pagination" ]; then
+    if [ "${FIXTURE_SCENARIO:-}" = "backport" ]; then
+      fixture="releases-backport.json"
+    elif [ "${FIXTURE_SCENARIO:-}" = "pagination" ]; then
       jq -nc '[range(0; 100) | {tag_name: ("draft-" + tostring), draft: true, prerelease: false, published_at: "2026-07-18T00:00:00Z", assets: []}]'
       printf '\n200'
       exit 0
+    else
+      fixture="releases.json"
     fi
-    fixture="releases.json"
     ;;
   *'/releases?per_page=100&page=2') fixture="releases.json" ;;
   */releases/tags/v1.2.3) fixture="latest-usable.json" ;;

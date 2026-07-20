@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - release binaries are fetched from GitHub releases
-- when `version` is empty, use GitHub's designated latest stable, non-draft release when it ships a verifiable binary; otherwise fall back to the newest published stable release that does
+- when `version` is empty, use GitHub's designated latest stable, non-draft release when it ships a verifiable binary; otherwise fall back to the highest-versioned stable release that does
 - checksums come from the release API `digest` (sha256); the archive is verified on every run, including cache hits, and a missing or mismatched checksum fails the action. Releases predating GitHub's release-asset digests (2025-06-03) carry no digest and are unsupported (for kubo, `v0.35.0` and older)
 - caching is now cache-first: the archive is restored before any download, keyed on the repository, resolved concrete version, and digest (`<prefix>-<repo>-<name>-<version>-<os>-<arch>-<sha256>`); a cache hit skips the download but the archive is still verified
 - `cache-hit` output now reports whether the archive was restored from cache instead of downloaded
