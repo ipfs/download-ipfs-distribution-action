@@ -105,7 +105,7 @@ port="$(cat "$TMP/port")"
 )
 wait "$server_pid"
 grep -q 'fixture archive' "$TMP/downloaded-asset"
-jq -e 'select(.path == "/asset" and .authorization == "Bearer private-token")' "$TMP/redirect.log" >/dev/null
-jq -e 'select(.path == "/cdn" and .authorization == null)' "$TMP/redirect.log" >/dev/null
+jq -s -e 'any(.[]; .path == "/asset" and .authorization == "Bearer private-token")' "$TMP/redirect.log" >/dev/null
+jq -s -e 'any(.[]; .path == "/cdn" and .authorization == null)' "$TMP/redirect.log" >/dev/null
 
 echo "script tests passed"
