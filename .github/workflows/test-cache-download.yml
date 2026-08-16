@@ -25,16 +25,36 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: download-ipfs-distribution-action
-      - if: runner.os != 'Windows'
-        run: echo '127.0.0.1 dist.ipfs.tech' | sudo tee -a /etc/hosts
-        shell: bash
-      - if: runner.os == 'Windows'
-        run: echo '127.0.0.1 dist.ipfs.tech' | tee -a C:/windows/system32/drivers/etc/hosts
+      # Permit release metadata requests but reject the octet-stream asset request. A passing
+      # run therefore proves that the archive was restored and the download step was skipped.
+      - name: Reject release asset downloads
+        run: |
+          shim="$RUNNER_TEMP/reject-asset-download"
+          mkdir -p "$shim"
+          real_curl="$(command -v curl)"
+          echo "REAL_CURL=$real_curl" >> "$GITHUB_ENV"
+          echo "$shim" >> "$GITHUB_PATH"
+          cat > "$shim/curl" <<'EOF'
+          #!/usr/bin/env bash
+          for argument in "$@"; do
+            if [ "$argument" = "Accept: application/octet-stream" ]; then
+              echo "release asset download was not expected" >&2
+              exit 99
+            fi
+          done
+          exec "$REAL_CURL" "$@"
+          EOF
+          chmod +x "$shim/curl"
         shell: bash
       - id: distribution
         uses: ./download-ipfs-distribution-action
         with:
+          name: kubo
+          version: v0.42.0
           prefix: test-cache-${{ matrix.os }}
+      # The upload job populated the cache, so this run must restore it rather than download.
       - if: ${{ steps.distribution.outputs.cache-hit != 'true' }}
         run: exit 1
+        shell: bash
+      - run: ${{ steps.distribution.outputs.executable }} --help
         shell: bash

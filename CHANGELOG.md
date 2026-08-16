@@ -4,7 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [2.0.0] - 2026-07-20
+### Added
+- `github-repo` input to override the built-in distribution-to-repo map (`distributions.json`) for distributions not in the map or to use a mirror
+- `github-token` input for reading releases and assets from another private repository
+
+### Changed
+- release binaries are fetched from GitHub releases
+- when `version` is empty, use GitHub's designated latest stable, non-draft release when it ships a verifiable binary; otherwise fall back to the highest-versioned stable release that does
+- checksums come from the release API `digest` (sha256); the archive is verified on every run, including cache hits, and a missing or mismatched checksum fails the action. Releases predating GitHub's release-asset digests (2025-06-03) carry no digest and are unsupported (for kubo, `v0.35.0` and older)
+- caching is now cache-first: the archive is restored before any download, keyed on the repository, resolved concrete version, and digest (`<prefix>-<repo>-<name>-<version>-<os>-<arch>-<sha256>`); a cache hit skips the download but the archive is still verified
+- `cache-hit` output now reports whether the archive was restored from cache instead of downloaded
+
+### Removed
+- dropped the `dist.ipfs.tech` download path; a distribution must now have a GitHub release (mapped in `distributions.json` or set via the `github-repo` input)
 
 ## [1.4.2] - 2026-04-11
 ### Changed

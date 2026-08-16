@@ -7,16 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        name: [kubo, fs-repo-migrations, gx, gx-go, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service, ipfs-ds-convert, ipfs-update, ipget, libp2p-relay-daemon]
-        exclude:
-          - os: macos-latest
-            name: gx
-          - os: macos-latest
-            name: gx-go
-          - os: macos-latest
-            name: ipfs-ds-convert
-          - os: macos-latest
-            name: ipget
+        name: [kubo, ipget, ipfs-cluster-ctl, ipfs-cluster-follow, ipfs-cluster-service]
       fail-fast: false
     steps:
       - uses: actions/checkout@v6
@@ -27,7 +18,64 @@ jobs:
         with:
           name: ${{ matrix.name }}
           cache: false
-      # ipget for linux-amd64 requires GLIBC_2.32 but GLIBC_2.31 is installed
-      - if: ${{ matrix.os != 'ubuntu-latest' || matrix.name != 'ipget' }}
-        run: ${{ steps.distribution.outputs.executable }} --help
+      - run: ${{ steps.distribution.outputs.executable }} --help
         shell: bash
+  Repository-Override:
+    name: Repository Override
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: download-ipfs-distribution-action
+      - id: distribution
+        uses: ./download-ipfs-distribution-action
+        with:
+          name: kubo
+          version: v0.42.0
+          github-repo: ipfs/kubo
+          cache: false
+      - run: ${{ steps.distribution.outputs.executable }} --help
+        shell: bash
+  Expected-Failures:
+    name: Expected Failures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: download-ipfs-distribution-action
+      - id: missing-digest
+        continue-on-error: true
+        uses: ./download-ipfs-distribution-action
+        with:
+          name: kubo
+          version: v0.35.0
+          cache: false
+      - if: steps.missing-digest.outcome != 'failure'
+        run: exit 1
+      - id: api-error
+        continue-on-error: true
+        uses: ./download-ipfs-distribution-action
+        with:
+          name: kubo
+          version: v0.42.0
+          github-token: invalid-token
+          cache: false
+      - if: steps.api-error.outcome != 'failure'
+        run: exit 1
+      - id: unsafe-name
+        continue-on-error: true
+        uses: ./download-ipfs-distribution-action
+        with:
+          name: ../unsafe
+          github-repo: ipfs/kubo
+          cache: false
+      - if: steps.unsafe-name.outcome != 'failure'
+        run: exit 1
+      - id: missing-repository
+        continue-on-error: true
+        uses: ./download-ipfs-distribution-action
+        with:
+          name: unknown-distribution
+          cache: false
+      - if: steps.missing-repository.outcome != 'failure'
+        run: exit 1
