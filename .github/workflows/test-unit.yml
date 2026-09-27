@@ -1,0 +1,13 @@
+name: Test scripts
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: bash tests/test-scripts.sh
+      - run: shellcheck scripts/*.sh tests/*.sh
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -no-color -shellcheck= .github/workflows/*.yml

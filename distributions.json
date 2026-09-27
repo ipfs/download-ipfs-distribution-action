@@ -1,0 +1,7 @@
+{
+  "kubo": "ipfs/kubo",
+  "ipget": "ipfs/ipget",
+  "ipfs-cluster-ctl": "ipfs-cluster/ipfs-cluster",
+  "ipfs-cluster-follow": "ipfs-cluster/ipfs-cluster",
+  "ipfs-cluster-service": "ipfs-cluster/ipfs-cluster"
+}

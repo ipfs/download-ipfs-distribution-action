@@ -1,25 +1,31 @@
 name: 'Download IPFS Distribution'
-description: 'Download executable from dist.ipfs.tech'
+description: 'Download an IPFS distribution from GitHub releases'
 inputs:
   name:
     description: 'Name of the distribution to download'
     required: true
     default: 'kubo'
   version:
-    description: 'Version of the distribution to download(defaults to latest stable version)'
+    description: 'Version of the distribution to download (defaults to the latest stable, non-draft release that ships a verifiable binary)'
+    required: false
+  github-repo:
+    description: "GitHub owner/repo that hosts the release binaries (overrides the built-in distributions.json map; set it for distributions not in the map or to use a mirror)"
+    required: false
+  github-token:
+    description: "GitHub token used to read release metadata and assets (defaults to github.token; pass a token with Contents: read for a private repository)"
     required: false
   working-directory:
-    description: "Directory where the action is going to be performed(defaults to temp directory)"
+    description: "Directory where the action is going to be performed (defaults to temp directory)"
     required: false
   install-directory:
-    description: "Directory where the executable is going to be copied(defaults to /usr/local/bin or /usr/bin on windows)"
+    description: "Directory where the executable is going to be copied (defaults to /usr/local/bin or /usr/bin on windows)"
     required: false
   cache:
-    description: "A boolean value to indicate the fallback cache should be used"
+    description: "A boolean value to indicate whether the resolved archive should be cached and restored before downloading"
     required: false
     default: 'true'
   prefix:
-    description: "Prefix to be used for the GitHub Actions artifact upload (defaults to download-ipfs-distribution-action)"
+    description: "Prefix to be used for the cache key (defaults to download-ipfs-distribution-action)"
     required: false
     default: 'download-ipfs-distribution-action'
 outputs:
@@ -30,19 +36,24 @@ outputs:
     description: "The names of all the executables"
     value: ${{ steps.copy.outputs.executables }}
   cache-hit:
-    description: "A boolean value to indicate the fallback cache was used"
-    value: ${{ (steps.versions-download.outcome == 'failure' && steps.versions-cache.outcome == 'success') || (steps.dist-download.outcome == 'failure' && steps.dist-cache.outcome == 'success') || (steps.archive-download.outcome == 'failure' && steps.archive-cache.outcome == 'success') }}
+    description: "A boolean value to indicate the archive was restored from cache instead of downloaded"
+    value: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
 runs:
   using: "composite"
   steps:
     - id: system
+      env:
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: |
-        WORKING_DIRECTORY="${{ inputs.working-directory }}"
-        OS="$(echo ${{ runner.os }} | tr '[:upper:]' '[:lower:]')"
-        ARCH="$(echo ${{ runner.arch }} | tr '[:upper:]' '[:lower:]')"
+        OS="$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')"
+        ARCH="$(echo "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')"
         if [ -z "$WORKING_DIRECTORY" ]; then
-          WORKING_DIRECTORY="${{ runner.temp }}"
+          WORKING_DIRECTORY="$RUNNER_TEMP"
         fi
+        case "$WORKING_DIRECTORY" in
+          *$'\n'*|*$'\r'*) echo "::error::working-directory must not contain newlines"; exit 1 ;;
+        esac
+        mkdir -p "$WORKING_DIRECTORY"
         case "$OS" in
           macos) OS="darwin" ;;
         esac
@@ -53,160 +64,122 @@ runs:
         echo "working-directory=$WORKING_DIRECTORY"
         echo "os=$OS"
         echo "arch=$ARCH"
-        echo "working-directory=$WORKING_DIRECTORY" >> $GITHUB_OUTPUT
-        echo "os=$OS" >> $GITHUB_OUTPUT
-        echo "arch=$ARCH" >> $GITHUB_OUTPUT
+        {
+          echo "working-directory=$WORKING_DIRECTORY"
+          echo "os=$OS"
+          echo "arch=$ARCH"
+        } >> "$GITHUB_OUTPUT"
       shell: bash
-    - run: mkdir "${{ inputs.name }}"
-      shell: bash
-      working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: versions-download
-      if: inputs.version == ''
-      run: curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/versions" "https://dist.ipfs.tech/${{ inputs.name }}/versions"
-      continue-on-error: ${{ inputs.cache == 'true' }}
-      shell: bash
-      working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: versions-cache
-      if: inputs.version == '' && inputs.cache == 'true'
-      uses: actions/cache/restore@v5
-      with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
-        key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
-        lookup-only: ${{ steps.versions-download.outcome == 'success' }}
-        fail-on-cache-miss: ${{ steps.versions-download.outcome == 'failure' }}
-      continue-on-error: ${{ steps.versions-download.outcome == 'success' }}
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.versions-cache.outputs.cache-hit == ''
-      uses: actions/cache/save@v5
-      with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/versions
-        key: ${{ inputs.prefix }}_${{ inputs.name }}_versions
-      continue-on-error: true
-    - id: inputs
+    - id: prepare
       env:
-        GITHUB_TOKEN: ${{ github.token }}
+        NAME: ${{ inputs.name }}
       run: |
-        VERSION="${{ inputs.version }}"
-        INSTALL_DIRECTORY="${{ inputs.install-directory }}"
-        if [ -z "$VERSION" ]; then
-          VERSION="$(grep -v rc "${{ inputs.name }}/versions" | tail -n 1)"
-        fi
-        if [ -z "$INSTALL_DIRECTORY" ]; then
-          if [ "${{ steps.system.outputs.os }}" == "windows" ]; then
-            INSTALL_DIRECTORY="/usr/bin"
-          else
-            INSTALL_DIRECTORY="/usr/local/bin"
-          fi
-        fi
-        echo "version=$VERSION"
-        echo "install-directory=$INSTALL_DIRECTORY"
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "install-directory=$INSTALL_DIRECTORY" >> $GITHUB_OUTPUT
-      shell: bash
-      working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: dist-download
-      run: curl --retry 5 --no-progress-meter --output "${{ inputs.name }}/dist.json" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}/dist.json"
-      continue-on-error: ${{ inputs.cache == 'true' }}
-      shell: bash
-      working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: dist-cache
-      if: inputs.cache == 'true'
-      uses: actions/cache/restore@v5
-      with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
-        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json
-        lookup-only: ${{ steps.dist-download.outcome == 'success' }}
-        fail-on-cache-miss: ${{ steps.dist-download.outcome == 'failure' }}
-      continue-on-error: ${{ steps.dist-download.outcome == 'success' }}
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.dist-cache.outputs.cache-hit == ''
-      uses: actions/cache/save@v5
-      with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ inputs.name }}/dist.json
-        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}_dist.json
-      continue-on-error: true
-    - id: dist
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      run: |
-        LINK="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.link | values' "${{ inputs.name }}/dist.json")"
-        ARCHIVE="$(basename "$LINK")"
-        SHA512="$(jq -r '.platforms.${{ steps.system.outputs.os }}.archs.${{ steps.system.outputs.arch }}.sha512 | values' "${{ inputs.name }}/dist.json")"
-        echo "link=$LINK"
-        echo "archive=$ARCHIVE"
-        echo "sha512=$SHA512"
-        echo "link=$LINK" >> $GITHUB_OUTPUT
-        echo "_link=${LINK//\//_}" >> $GITHUB_OUTPUT
-        echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
-        echo "sha512=$SHA512" >> $GITHUB_OUTPUT
-        if [[ "$LINK" == '' ]]; then
-          echo "::error::Could not find download link for '${{ inputs.name }}@${{ steps.inputs.outputs.version }}' (${{ steps.system.outputs.os }} ${{ steps.system.outputs.arch }}) on dist.ipfs.tech"
+        if ! [[ "$NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+          echo "::error::name must start with an alphanumeric character and contain only letters, numbers, dots, underscores, or hyphens"
           exit 1
         fi
+        mkdir -p "$NAME"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: archive-download
-      run: curl --retry 5 --no-progress-meter --output "${{ steps.dist.outputs.archive }}" "https://dist.ipfs.tech/${{ inputs.name }}/${{ steps.inputs.outputs.version }}${{ steps.dist.outputs.link }}"
-      continue-on-error: ${{ inputs.cache == 'true' }}
+    # Resolve the GitHub repo, the concrete version, the release asset URL, its checksum,
+    # and the immutable cache key.
+    - id: resolve
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        NAME: ${{ inputs.name }}
+        VERSION: ${{ inputs.version }}
+        GITHUB_REPO: ${{ inputs.github-repo }}
+        INSTALL_DIRECTORY: ${{ inputs.install-directory }}
+        OS: ${{ steps.system.outputs.os }}
+        ARCH: ${{ steps.system.outputs.arch }}
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        source "$GITHUB_ACTION_PATH/scripts/resolve-release.sh"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - id: archive-cache
+    # Cache-first: restore the immutable artifact before any download. A hit skips the
+    # download; the archive is still re-verified by the verify step below.
+    - id: cache-restore
       if: inputs.cache == 'true'
       uses: actions/cache/restore@v5
       with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
-        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}
-        lookup-only: ${{ steps.archive-download.outcome == 'success' }}
-        fail-on-cache-miss: ${{ steps.archive-download.outcome == 'failure' }}
-      continue-on-error: ${{ steps.archive-download.outcome == 'success' }}
-    - if: inputs.version == '' && inputs.cache == 'true' && steps.archive-cache.outputs.cache-hit == ''
-      uses: actions/cache/save@v5
-      with:
-        path: ${{ steps.system.outputs.working-directory }}/${{ steps.dist.outputs.archive }}
-        key: ${{ inputs.prefix }}_${{ inputs.name }}_${{ steps.inputs.outputs.version }}${{ steps.dist.outputs._link }}
+        path: ${{ steps.system.outputs.working-directory }}/${{ steps.resolve.outputs.archive }}
+        key: ${{ steps.resolve.outputs.cache-key }}
       continue-on-error: true
-    - if: steps.dist.outputs.sha512 != ''
+    - id: download
+      if: inputs.cache != 'true' || steps.cache-restore.outputs.cache-hit != 'true'
+      env:
+        ARCHIVE: ${{ steps.resolve.outputs.archive }}
+        ASSET_API_URL: ${{ steps.resolve.outputs.asset-api-url }}
+        GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
       run: |
-        CMD="sha512sum"
-        if [ "${{ runner.os }}" == "macOS" ]; then
-          CMD="shasum --algorithm 512"
-        fi
-        echo "${{ steps.dist.outputs.sha512 }}  ${{ steps.dist.outputs.archive }}" | $CMD --check
+        source "$GITHUB_ACTION_PATH/scripts/download-asset.sh"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - run: |
-        case "${{ steps.dist.outputs.archive }}" in
-          *.tar.gz) tar -zxf "${{ steps.dist.outputs.archive }}" ;;
-          *.zip) 7z e "${{ steps.dist.outputs.archive }}" -o${{ inputs.name }} ;;
+    # Verify on every run, including a cache hit, so a corrupt download or a tampered
+    # cache entry is caught. A missing or mismatched checksum fails the action.
+    - env:
+        ARCHIVE: ${{ steps.resolve.outputs.archive }}
+        CHECKSUM: ${{ steps.resolve.outputs.checksum }}
+      run: |
+        if [ "$RUNNER_OS" = "macOS" ]; then
+          echo "$CHECKSUM  $ARCHIVE" | shasum --algorithm 256 --check
+        else
+          echo "$CHECKSUM  $ARCHIVE" | sha256sum --check
+        fi
+      shell: bash
+      working-directory: ${{ steps.system.outputs.working-directory }}
+    - if: inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ steps.system.outputs.working-directory }}/${{ steps.resolve.outputs.archive }}
+        key: ${{ steps.resolve.outputs.cache-key }}
+      continue-on-error: true
+    - env:
+        ARCHIVE: ${{ steps.resolve.outputs.archive }}
+        NAME: ${{ inputs.name }}
+      run: |
+        case "$ARCHIVE" in
+          *.tar.gz) tar -zxf "$ARCHIVE" ;;
+          *.zip) 7z e "$ARCHIVE" -o"$NAME" ;;
+          *) echo "::error::unsupported archive format: $ARCHIVE"; exit 1 ;;
         esac
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
     - id: copy
       env:
         NAME: ${{ inputs.name }}
-        INSTALL_DIRECTORY: ${{ steps.inputs.outputs.install-directory }}
+        INSTALL_DIRECTORY: ${{ steps.resolve.outputs.install-directory }}
       run: |
-        EXECUTABLES=()
-        for executable in $(find $NAME -type f -perm -111 ! -name "*.sh"); do
+        names=()
+        while IFS= read -r executable; do
           if [ -w "$INSTALL_DIRECTORY" ]; then
-            cp "$executable" "$INSTALL_DIRECTORY/$EXECUTABLE"
-          elif [ -x "$(command -v sudo)" ]; then
-            sudo cp "$executable" "$INSTALL_DIRECTORY/$EXECUTABLE"
+            cp "$executable" "$INSTALL_DIRECTORY/"
+          elif command -v sudo >/dev/null; then
+            sudo cp "$executable" "$INSTALL_DIRECTORY/"
           else
-            echo "Unable to install $EXECUTABLE to $INSTALL_DIRECTORY"
+            echo "::error::cannot install $(basename "$executable") to $INSTALL_DIRECTORY (not writable and sudo unavailable)"
             exit 1
           fi
-          EXECUTABLES+=("$(basename $executable)")
-        done
-        EXECUTABLE="${EXECUTABLES[0]}"
-        EXECUTABLES="$(jq -nc '$ARGS.positional' --args ${EXECUTABLES[@]})"
-        echo "executable=$EXECUTABLE"
-        echo "executables=$EXECUTABLES"
-        echo "executable=$EXECUTABLE" >> $GITHUB_OUTPUT
-        echo "executables=$EXECUTABLES" >> $GITHUB_OUTPUT
+          names+=("$(basename "$executable")")
+        done < <(find "$NAME" -type f -perm -111 ! -name "*.sh")
+        if [ "${#names[@]}" -eq 0 ]; then
+          echo "::error::no executable found in $NAME after extraction"
+          exit 1
+        fi
+        {
+          echo "executable=${names[0]}"
+          echo "executables=$(jq -nc '$ARGS.positional' --args "${names[@]}")"
+        } >> "$GITHUB_OUTPUT"
+        echo "installed ${names[*]} to $INSTALL_DIRECTORY"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}
-    - if: always()
+    - if: always() && steps.prepare.outcome == 'success'
+      env:
+        ARCHIVE: ${{ steps.resolve.outputs.archive }}
+        NAME: ${{ inputs.name }}
       run: |
-        rm -r "${{ inputs.name }}"
-        rm "${{ steps.dist.outputs.archive }}"
+        rm -rf "$NAME"
+        rm -f "$ARCHIVE"
       shell: bash
       working-directory: ${{ steps.system.outputs.working-directory }}

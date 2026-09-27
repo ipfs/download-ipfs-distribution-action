@@ -1,0 +1,41 @@
+[
+  {
+    "tag_name": "v1.2.3",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-07-17T12:00:00Z",
+    "assets": [
+      {
+        "name": "kubo_v1.2.3_linux-amd64.tar.gz",
+        "url": "https://api.github.com/repos/example/private-releases/releases/assets/123",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ]
+  },
+  {
+    "tag_name": "v3.0.0-rc1",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-07-18T13:00:00Z",
+    "assets": [
+      {
+        "name": "kubo_v3.0.0-rc1_linux-amd64.tar.gz",
+        "url": "https://api.github.com/repos/example/private-releases/releases/assets/300",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  },
+  {
+    "tag_name": "v1.2.2",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2025-01-01T12:00:00Z",
+    "assets": [
+      {
+        "name": "kubo_v1.2.2_linux-amd64.tar.gz",
+        "url": "https://api.github.com/repos/example/private-releases/releases/assets/122",
+        "digest": null
+      }
+    ]
+  }
+]
